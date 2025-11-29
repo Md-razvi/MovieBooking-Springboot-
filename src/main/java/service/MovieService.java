@@ -3,7 +3,10 @@ package service;
 import controller.MovieController;
 import dto.MovieDto;
 import model.Movie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import repositories.MovieRepository;
 
 import java.util.List;
@@ -43,4 +46,26 @@ public class MovieService {
         }
         return byLanguage;
     }
+    public Movie getMovieByTitle(String title){
+        Optional<Movie> movie=movieRepository.findByName(title);
+        if(movie.isEmpty()){
+            throw new RuntimeException("No movie of such name found");
+        }
+            return movie.get();
+    }
+    public Movie updateMovie(Long id,MovieDto movieDto){
+        Movie movie=movieRepository.findById(id).
+                orElseThrow(()-> new RuntimeException("Id not found"));
+        movie.setName(movieDto.getName());
+        movie.setDescription(movieDto.getDescription());
+        movie.setGenre(movieDto.getGenre());
+        movie.setReleaseDate(movieDto.getReleaseDate());
+        movie.setDuration(movieDto.getDuration());
+        movie.setLanguage(movieDto.getLanguage());
+        return movieRepository.save(movie);
+    }
+    public void deleteMovie(Long id){
+        movieRepository.deleteById(id);
+    }
+
 }
