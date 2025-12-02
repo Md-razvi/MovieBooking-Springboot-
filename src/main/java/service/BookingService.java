@@ -6,10 +6,9 @@ import model.BookingStatus;
 import model.Show;
 import model.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 //import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 //import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.stereotype.Service;
 import repositories.BookingRepository;
 import repositories.ShowRepository;
 import repositories.UserRepository;
@@ -18,7 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+@Service
 public class BookingService {
     @Autowired
     private BookingRepository bookingRepository;
@@ -36,7 +35,7 @@ public class BookingService {
             throw new RuntimeException("No seats available");
         }
         if(bookingDto.getBookingSeats().size()!=bookingDto.getNoOfSeats()){
-            throw new RuntimeException("seat numbers and Numbers of seats ")
+            throw new RuntimeException("seat numbers and Numbers of seats ");
         }
 
         validateSeatNumbers(show.getId(),bookingDto.getBookingSeats());
@@ -81,13 +80,42 @@ public class BookingService {
         return price*NoOfSeats;
 
     }
-    public List<Booking> getUserBooking(Long id){
-        return bookingRepository.findByUserId(id);
+    public List<Booking> getUserBooking(Long userId){
+        return bookingRepository.findByUserId(userId);
 
     }
-    public List<Booking>getUserShows(Long id){
-        return bookingRepository.findByShowId(id);
+    public List<Booking>getUserShows(Long showId){
+        return bookingRepository.findByShowId(showId);
 
+    }
+    public Booking confirmBooking(Long bookingId){
+        Booking booking=bookingRepository.findById(bookingId)
+                .orElseThrow(()->new RuntimeException("No Booking of such id found"));
+        if(booking.getBookingStatus()!=BookingStatus.PENDING){
+            throw new RuntimeException("Booking is not in Pending Status");
+        }
+        booking.setBookingStatus(BookingStatus.CONFIRMED);
+        return bookingRepository.save(booking);
+    }
+    public Booking cancelBooking(Long bookingId){
+        Booking booking=bookingRepository.findById(bookingId)
+                .orElseThrow(()->new RuntimeException("No Booking of such id found"));
+        validateCancellation(booking);
+        booking.setBookingStatus(BookingStatus.CANCELLED);
+        return bookingRepository.save(booking);
+    }
+    public void validateCancellation(Booking booking){
+        LocalDateTime showTime=booking.getShow().getShowTime();
+        LocalDateTime deadlineTime=showTime.minusHours(2);
+        if(LocalDateTime.now().isAfter(deadlineTime)){
+            throw new RuntimeException("Cannot cancel  the booking now");
+        }
+        if(booking.getBookingStatus()==BookingStatus.CANCELLED){
+            throw new RuntimeException("Booking already been cancelled");
+        }
+    }
+    public List<Booking> getBookingStatus(BookingStatus bookingStatus){
+        return bookingRepository.findByBookingStatus(bookingStatus);
     }
 
 
